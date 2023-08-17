@@ -1,0 +1,40 @@
+name: deploy bicep template
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read 
+
+jobs:
+
+  main:
+    runs-on: ubuntu-latest
+        
+    steps: 
+
+      - name: '🔻 checkout'
+        uses: actions/checkout@v2
+        
+      - name: '🔓 az login'
+        uses: azure/login@v1
+        with:
+          creds: '{"clientId": "${{ secrets.APPLICATION_ID }}", "clientSecret": "${{ secrets.APPLICATION_SECRET }}", "subscriptionId": "${{ secrets.SUBSCRIPTION_ID }}", "tenantId": "${{ secrets.TENANT_ID }}"}'
+
+      - name: '🚀 deploy'
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.SUBSCRIPTION_ID }}
+          template: './src/template.bicep'
+          region: 'westeurope'
+          deploymentName: "deployment-${{ github.run_id }}"
+          parameters: 'location="westeurope" randomKey=${{ github.run_id }} objectId=${{ secrets.APPLICATION_OBJECT_ID }} tenantId=${{ secrets.TENANT_ID }}'
+          failOnStdErr: false
+          scope: 'subscription'
+              
+      - name: '🔒 az logout'
+        run: |
+            az logout             
+        if: always()
